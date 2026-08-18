@@ -1,0 +1,24 @@
+# Virtualenv (75 MB, recreate with: python3 -m venv .venv && pip install garminconnect pydantic)
+.venv/
+venv/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Garmin Connect credentials and cached OAuth tokens. The default token store is
+# ~/.garminconnect (outside this repo), but never let a copy in here be committed.
+.garminconnect/
+garmin_tokens.json
+*token*.json
+.env
+.env.*
+
+# Activity-set dumps written by rewrite_sets.py --dump. Personal health data, and one
+# file per activity, so not source. NB: these are the ONLY rollback for a
+# rewrite_sets.py --apply, and being ignored means `git clean -fdx` will delete them.
+# Copy them somewhere safe before any destructive git operation.
+backups/
+
+# NB: fit_weighted_variants.json is generated from the garmin-fit-sdk enums but IS
+# tracked on purpose -- liftwsarah.py and rewrite_sets.py both read it at runtime.
