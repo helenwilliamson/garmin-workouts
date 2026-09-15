@@ -19,6 +19,8 @@ Then:
     python3 garmin_liftwsarah.py --dry-run  # build + print, no upload/login
     python3 garmin_liftwsarah.py --pull-weights --dry-run  # pull recent weights, preview, no upload
     python3 garmin_liftwsarah.py --pull-weights            # pull recent weights, then upload
+    python3 garmin_liftwsarah.py --schedule --no-upload    # fill the calendar, upload nothing
+    python3 garmin_liftwsarah.py --schedule 8 --no-upload --dry-run   # preview 8 weeks
 
 EDIT ME: entries are (name, sets, reps, weight_kg). Reps are placeholders
 (3 x 10 throughout) since the video's numbers weren't in the source list, and
@@ -195,6 +197,17 @@ EXERCISE_MAP: dict[str, tuple[str, str | None]] = {
     # weight, which is how the watch logs it too.
     "Weighted Crunches": ("CRUNCH", "CRUNCH"),
     "Standing Calf Raises": ("CALF_RAISE", "STANDING_CALF_RAISE"),
+    # --- shoulder-sparing swaps (FB Express (Low shoulder)) ----------------------
+    # All four are exact FIT matches. Chosen to keep the shoulder out of the ranges
+    # that aggravate an impingement/cuff irritation: no vertical overhead press, no
+    # loaded end-range hang, no abduction past ~60 degrees.
+    "Flat DB Press": ("BENCH_PRESS", "NEUTRAL_GRIP_DUMBBELL_BENCH_PRESS"),
+    "High-Incline DB Press": ("BENCH_PRESS", "NEUTRAL_GRIP_DUMBBELL_INCLINE_BENCH_PRESS"),
+    "Face Pulls": ("ROW", "FACE_PULL"),
+    # Plain LAT_PULLDOWN deliberately, not CLOSE_GRIP_LAT_PULLDOWN: it shares the
+    # enum with the other two pulldowns below, so --pull-weights finds the existing
+    # pulldown history instead of starting from nothing. Grip is in the label.
+    "Neutral-Grip Lat Pulldown": ("PULL_UP", "LAT_PULLDOWN"),
 }
 
 # Optional custom step labels for exercises Garmin has no exact entry for. Set as
@@ -209,6 +222,8 @@ DISPLAY_NAME_OVERRIDES: dict[str, str] = {
     "Pull-ups": "Assisted Pull-up",  # underlying enum is band-assisted; label covers machine assist
     "Chin-ups": "Assisted Chin-up",
     "Chest-Supported Machine Row": "Chest-Supported Row",  # enum is the dumbbell version
+    "High-Incline DB Press": "High-Incline DB Press",  # enum name doesn't say "high"
+    "Neutral-Grip Lat Pulldown": "Neutral-Grip Lat Pulldown",  # enum is grip-agnostic
 }
 
 # --- the plan: (exercise name, sets, reps, weight_kg) --------------------------
@@ -255,6 +270,27 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
         ("Standing DB Shoulder Press", 3, 10, 0),
         ("DB Side Lateral Raises", 3, 10, 0),            # added, after the shoulder press
         ("Pull-ups", 3, 10, 0),                          # added, at the end
+    ],
+    # Shoulder-sparing copy of FB 1 Express, for training around a shoulder that
+    # doesn't tolerate overhead work (irritated 2026-09-01 doing pull-ups). Same
+    # legs and same posterior-chain work; the four upper-body pressing/pulling
+    # movements are swapped:
+    #   Incline Barbell Bench Press -> Flat DB Press          (neutral grip, no fixed bar path)
+    #   Standing DB Shoulder Press  -> High-Incline DB Press  (no vertical overhead press)
+    #   DB Side Lateral Raises      -> Face Pulls             (no abduction past ~60 deg)
+    #   Pull-ups                    -> Neutral-Grip Lat Pulldown  (no loaded end-range hang)
+    # Weights inherit exactly as FB 1 Express does. Upper-body loads are NOT deloaded
+    # here -- knock ~30% off the presses and the pulldown on the watch while the
+    # shoulder is settling, and stay inside a pain-free range.
+    "FB Express (Low shoulder)": [
+        ("Hip Thrusts (Smith)", 3, 10, 0),
+        ("Romanian Deadlifts", 3, 10, 40),           # barbell; holds the RDL table weight
+        ("Flat DB Press", 3, 10, 0),
+        ("Chest-Supported Machine Row", 3, 10, 0),   # chest pad keeps the shoulder quiet
+        ("Leg Press", 3, 10, 0),
+        ("High-Incline DB Press", 3, 10, 0),
+        ("Face Pulls", 3, 12, 10),                   # 12 reps: cuff work, not a heavy set
+        ("Neutral-Grip Lat Pulldown", 3, 10, 0),
     ],
     "FB 2 Power": [
         ("Standing Calf Raises", 3, 10, 0),             # added, first exercise
@@ -304,6 +340,16 @@ WEIGHT_FROM: dict[str, str] = {
     "Hip Adduction": "Hip Adduction",
     "Pull-ups": "Pull-ups",
     "DB Side Lateral Raises": "DB Side Lateral Raises",
+    # Shoulder swaps. Both DB presses take the Smith incline press number, same as
+    # the barbell presses they stand in for -- a starting point, not a validated
+    # dumbbell weight (a pair of DBs at the Smith bar's load is a much harder set).
+    "Flat DB Press": "Incline Press (Smith)",
+    "High-Incline DB Press": "Incline Press (Smith)",
+    # Shares the LAT_PULLDOWN enum with the pulldowns above, so --pull-weights fills
+    # it from their history; this only covers the no-pull case, same as Heavy Lat
+    # Pulldowns. Face Pulls has no equivalent lift in the plan at all, so it carries
+    # a literal placeholder weight in the table instead of inheriting one.
+    "Neutral-Grip Lat Pulldown": "Seated Single-Arm Cable Pulldown",
 }
 
 # Hand-set warm-up weights, for movements whose logged history offers no usable
@@ -315,6 +361,29 @@ WARMUP_WEIGHTS: dict[str, float] = {
     "Romanian Deadlifts": 20.0,         # nothing logged in the window to open from
     "Conventional Barbell Deadlifts": 20.0,  # logged opener was 40 kg, too heavy to start on
 }
+
+
+# --- recurring calendar schedule ---------------------------------------------
+# Which session lands on which weekday. Keys are datetime's weekday numbers,
+# Monday = 0 ... Sunday = 6. Garmin has no repeating-workout API, so --schedule
+# expands this into one calendar entry per date.
+WEEKLY_SCHEDULE: dict[int, str] = {
+    1: "FB 1 Express",   # Tuesday
+    4: "FB 2 Power",     # Friday
+}
+
+# Per-date exceptions, which WIN over WEEKLY_SCHEDULE: a name swaps that day's
+# session, None skips the day entirely. Delete an entry once its date is past --
+# they are one-offs, not policy.
+SCHEDULE_OVERRIDES: dict[str, str | None] = {
+    # e.g. "2026-09-08": "FB Express (Low shoulder)",   # swap in shoulder-sparing session
+    #      "2026-12-25": None,                          # skip the day
+}
+
+# How many weeks --schedule fills by default, counting from today inclusive. Short
+# on purpose: re-running is cheap, and unpicking a long stretch of wrong entries
+# isn't. Override with `--schedule N`.
+SCHEDULE_WEEKS = 4
 
 
 def strength_step(name: str, reps: int, order: int, weight_kg: float = 0.0) -> ExecutableStep:
@@ -544,6 +613,87 @@ def build_session(name: str, exercises: list[tuple[str, int, int, float]],
     )
 
 
+def schedule_plan(weeks: int, start: dt.date | None = None) -> list[tuple[str, str]]:
+    """[(YYYY-MM-DD, session name)] for `weeks` weeks from `start`, inclusive.
+
+    WEEKLY_SCHEDULE gives the recurring pattern; SCHEDULE_OVERRIDES wins on the
+    dates it names (None there means "no workout that day"). An override on a
+    weekday the pattern doesn't cover still counts -- that's how a one-off lands.
+    """
+    start = start or dt.date.today()
+    plan: list[tuple[str, str]] = []
+    for offset in range(weeks * 7):
+        day = start + dt.timedelta(days=offset)
+        iso = day.isoformat()
+        name = SCHEDULE_OVERRIDES.get(iso, WEEKLY_SCHEDULE.get(day.weekday()))
+        if name is None:
+            continue
+        if name not in SESSIONS:
+            raise SystemExit(f"schedule names an unknown workout: {name!r}\n"
+                             f"available: {sorted(SESSIONS)}")
+        plan.append((iso, name))
+    return plan
+
+
+def existing_schedule(garmin: Garmin, dates: list[str]) -> dict[str, list[dict]]:
+    """{date: [scheduled workout items]} for every month the dates fall in.
+
+    One request per month rather than per date. Only itemType "workout" entries
+    are returned -- the calendar also carries activities, events and weigh-ins.
+    """
+    out: dict[str, list[dict]] = {}
+    months = sorted({(int(d[:4]), int(d[5:7])) for d in dates})
+    for year, month in months:
+        payload = garmin.get_scheduled_workouts(year, month)
+        for item in (payload.get("calendarItems") or []):
+            if item.get("itemType") != "workout":
+                continue
+            out.setdefault(item.get("date"), []).append(item)
+    return out
+
+
+def apply_schedule(garmin: Garmin, plan: list[tuple[str, str]],
+                   dry_run: bool = False) -> None:
+    """Put each (date, session) on the Garmin calendar, idempotently.
+
+    A date already carrying the right workoutId is left alone, so re-running adds
+    only what's missing. A date carrying a DIFFERENT session of ours is replaced
+    (Garmin has no reschedule-in-place, so that's unschedule + schedule). Anything
+    else on the day -- another plan's workout, a Garmin-managed one -- is reported
+    and left untouched: it isn't ours to move.
+    """
+    ids = {w.get("workoutName"): w.get("workoutId") for w in garmin.get_workouts(limit=200)}
+    missing = sorted({nm for _d, nm in plan if nm not in ids})
+    if missing:
+        raise SystemExit(f"not uploaded to Garmin yet: {missing}\n"
+                         f"upload them first (drop --no-upload), then schedule.")
+
+    current = existing_schedule(garmin, [d for d, _nm in plan])
+    for date_str, name in plan:
+        want_id = ids[name]
+        same = [it for it in current.get(date_str, []) if it.get("workoutId") == want_id]
+        if same:
+            print(f"  {date_str}  {name:28} already scheduled")
+            continue
+        # Ours, but the wrong session for this date -> replace it.
+        stale = [it for it in current.get(date_str, [])
+                 if it.get("title") in SESSIONS and not it.get("protectedWorkoutSchedule")]
+        foreign = [it for it in current.get(date_str, [])
+                   if it.get("title") not in SESSIONS]
+        for it in foreign:
+            print(f"  {date_str}  note: '{it.get('title')}' also scheduled, left alone")
+        if dry_run:
+            was = f"  (replaces '{stale[0].get('title')}')" if stale else ""
+            print(f"  {date_str}  {name:28} would schedule{was}")
+            continue
+        for it in stale:
+            garmin.unschedule_workout(it.get("id"))
+            print(f"  {date_str}  unscheduled '{it.get('title')}'")
+        result = garmin.schedule_workout(want_id, date_str)
+        print(f"  {date_str}  {name:28} scheduled "
+              f"(scheduleId {result.get('workoutScheduleId')})")
+
+
 def connect() -> Garmin:
     """Log in, preferring the cached tokens in TOKENSTORE.
 
@@ -727,10 +877,24 @@ def main() -> None:
     args = sys.argv[1:]
     dry_run = "--dry-run" in args
     pull = "--pull-weights" in args
+    # --no-upload: touch the calendar only, leaving the uploaded workouts (and so
+    # their workoutIds, and everything already scheduled) exactly as they are.
+    no_upload = "--no-upload" in args
+    # --schedule [N weeks]: expand WEEKLY_SCHEDULE / SCHEDULE_OVERRIDES onto the
+    # Garmin calendar. Runs AFTER any upload, because replacing a workout gives it
+    # a fresh workoutId and drops whatever that workout was scheduled for.
+    schedule = "--schedule" in args
+    weeks = SCHEDULE_WEEKS
+    if schedule:
+        i = args.index("--schedule")
+        if i + 1 < len(args) and args[i + 1].isdigit():
+            weeks = int(args[i + 1])
     # --only "NAME" (repeatable): upload just these workouts. Without it every
     # session is replaced, which drops the calendar scheduling of the ones you
     # didn't mean to touch (replace = delete + re-upload, new workoutId).
     args_only = [args[i + 1] for i, a in enumerate(args) if a == "--only" and i + 1 < len(args)]
+    if no_upload and not schedule:
+        raise SystemExit("--no-upload does nothing on its own; add --schedule.")
 
     garmin = None
     overrides: dict[str, float] = {}
@@ -803,21 +967,34 @@ def main() -> None:
                 for name, ex in selected.items()}
 
     if dry_run:
-        for name, wk in workouts.items():
-            d = wk.to_dict()
-            print(f"{name}: {len(d['workoutSegments'][0]['workoutSteps'])} top-level steps, "
-                  f"~{d['estimatedDurationInSecs'] // 60} min")
-        print("\nDry run OK — nothing uploaded.")
+        if not no_upload:
+            for name, wk in workouts.items():
+                d = wk.to_dict()
+                print(f"{name}: {len(d['workoutSegments'][0]['workoutSteps'])} top-level steps, "
+                      f"~{d['estimatedDurationInSecs'] // 60} min")
+        if schedule:
+            plan = schedule_plan(weeks)
+            print(f"\nSchedule for the next {weeks} week(s):")
+            if garmin is None:
+                garmin = connect()   # reading the calendar needs a login even on a dry run
+            apply_schedule(garmin, plan, dry_run=True)
+        print("\nDry run OK — nothing uploaded, nothing scheduled.")
         return
 
     if garmin is None:
         garmin = connect()
-    replaced = replace_existing(garmin, set(workouts))
-    for name, wk in workouts.items():
-        for old in replaced.get(name, []):
-            print(f"Replaced existing '{name}' (removed workoutId {old})")
-        result = garmin.upload_workout(wk.to_dict())
-        print(f"Uploaded {name} -> workoutId {result.get('workoutId')}")
+    if not no_upload:
+        replaced = replace_existing(garmin, set(workouts))
+        for name, wk in workouts.items():
+            for old in replaced.get(name, []):
+                print(f"Replaced existing '{name}' (removed workoutId {old})")
+            result = garmin.upload_workout(wk.to_dict())
+            print(f"Uploaded {name} -> workoutId {result.get('workoutId')}")
+
+    if schedule:
+        plan = schedule_plan(weeks)
+        print(f"\nScheduling the next {weeks} week(s):")
+        apply_schedule(garmin, plan)
 
 
 if __name__ == "__main__":
