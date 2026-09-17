@@ -135,7 +135,7 @@ TIMED_EXERCISES: set[str] = {"Farmer's Walk"}
 # Exercises that get NO warm-up set: every set in SESSIONS is a working set. For a
 # light accessory done one side at a time, or a carry, the first set IS the warm-up
 # -- marking one as such just spends a set of the few they get.
-NO_WARMUP_EXERCISES: set[str] = {"Farmer's Walk", "Cable Woodchop"}
+NO_WARMUP_EXERCISES: set[str] = {"Farmer's Walk", "Cable Woodchop", "Hanging Leg Raises"}
 
 NO_TARGET = {
     "workoutTargetTypeId": TargetType.NO_TARGET,
