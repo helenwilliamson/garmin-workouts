@@ -132,6 +132,11 @@ ONE_REP_MAX_EXERCISES: set[str] = set()
 # count. A carry is a duration, not a rep count, which is why this exists.
 TIMED_EXERCISES: set[str] = {"Farmer's Walk"}
 
+# Exercises that get NO warm-up set: every set in SESSIONS is a working set. For a
+# light accessory done one side at a time, or a carry, the first set IS the warm-up
+# -- marking one as such just spends a set of the few they get.
+NO_WARMUP_EXERCISES: set[str] = {"Farmer's Walk", "Cable Woodchop"}
+
 NO_TARGET = {
     "workoutTargetTypeId": TargetType.NO_TARGET,
     "workoutTargetTypeKey": "no.target",
@@ -591,7 +596,8 @@ def build_session(name: str, exercises: list[tuple[str, int, int, float]],
     """Build one strength workout.
 
     Every exercise opens with a WARM-UP set, then the remaining sets as working sets
-    in a repeat group. The warm-up weight comes from warmup_overrides (what you last
+    in a repeat group -- except for NO_WARMUP_EXERCISES, where all `sets` are working
+    sets and there is no warm-up. The warm-up weight comes from warmup_overrides (what you last
     opened that movement with); with nothing to go on it falls back to the working
     weight, so the set is still marked warm-up but isn't a lighter load.
 
@@ -612,11 +618,14 @@ def build_session(name: str, exercises: list[tuple[str, int, int, float]],
         work_reps = reps if ex_name in TIMED_EXERCISES else rep_overrides.get(ex_name, reps)
         rest = REST_OVERRIDES.get(ex_name, REST_BETWEEN_SETS_SECS)
 
-        # Set 1: warm-up, then its rest.
-        steps.append(warmup_step(ex_name, reps, order, warm_kg))
-        order += 1
-        steps.append(timed_rest(rest, order))
-        order += 1
+        # Set 1: warm-up, then its rest -- unless this movement forgoes the warm-up,
+        # in which case `sets` working sets go into the group below instead.
+        warms_up = ex_name not in NO_WARMUP_EXERCISES
+        if warms_up:
+            steps.append(warmup_step(ex_name, reps, order, warm_kg))
+            order += 1
+            steps.append(timed_rest(rest, order))
+            order += 1
 
         # Optional single max attempt, before the working sets while fresh.
         attempt_kg = max_attempts.get(ex_name) if ex_name in ONE_REP_MAX_EXERCISES else None
@@ -632,7 +641,7 @@ def build_session(name: str, exercises: list[tuple[str, int, int, float]],
             strength_step(ex_name, work_reps, 1, wk),
             timed_rest(rest, 2),
         ]
-        group = create_repeat_group(iterations=max(1, sets - 1),
+        group = create_repeat_group(iterations=max(1, sets - 1 if warms_up else sets),
                                    workout_steps=inner, step_order=order)
         # Skip the 90s rest on the final set, so the only pause before the next
         # exercise is the lap-button rest (and the last exercise ends on a set).
