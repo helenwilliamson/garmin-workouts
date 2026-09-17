@@ -325,11 +325,9 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
         ("Barbell Back Squats", 3, 10, 0),
         ("Conventional Barbell Deadlifts", 3, 10, 0),
         # Was Leg Press, a second squat pattern after the back squat. Swapped for the
-        # lunge, same movement as FB 1 Express so there's one weight to maintain.
-        # 4 sets here against Express's 6: this session already carries the back
-        # squat and the deadlift, so the lunge is accessory work rather than the
-        # main knee-dominant lift.
-        ("Bulgarian Split Squats (Smith)", 4, 10, 0),   # 2 per side; the lunge pattern
+        # lunge, same movement and same 6 sets as FB 1 Express, so there's one number
+        # to maintain rather than a per-session count.
+        ("Bulgarian Split Squats (Smith)", 6, 10, 0),   # 3 per side; the lunge pattern
         ("Hip Adduction", 3, 10, 0),                    # added, after the leg press
         ("Flat Barbell Bench Press", 3, 10, 0),
         # Heavy Lat Pulldowns removed here -- the session's second vertical pull, with
