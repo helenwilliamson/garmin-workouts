@@ -338,13 +338,15 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
         # Pull-ups at the end. Its replacement (the carry) is last, not in this slot.
         ("Seated Cable Row", 3, 10, 0),
         ("Standing DB Shoulder Press", 3, 10, 0),       # was barbell overhead press
-        ("DB Bicep Curls", 3, 10, 0),
         # Was Weighted Crunches: the same trunk flexion as the hanging knee raises
         # two rows down. Swapped for the rotate pattern.
         ("Cable Woodchop", 4, 10, 0),                   # 2 per side
         ("Tricep Rope Pushdowns", 3, 10, 0),
         ("Hanging Leg Raises", 3, 10, 0),               # was knee raises
         ("Pull-ups", 3, 10, 0),                         # added, after the knee raises
+        # Curls AFTER the pull-up, not before it: the biceps are a limiting factor in
+        # the pull-up, and isolating them first makes the compound lift the weaker one.
+        ("DB Bicep Curls", 3, 10, 0),
         # The carry that replaced Heavy Lat Pulldowns. Last on purpose: 3 x 60 s of
         # loaded carry ruins grip for the row and the pull-ups, which used to follow
         # it. TIMED: the 60 is SECONDS per set, not reps.
