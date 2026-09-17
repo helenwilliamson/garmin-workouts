@@ -300,7 +300,7 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
         ("Pull-ups", 3, 10, 0),
         # TIMED: the 60 is SECONDS per set, not reps (see TIMED_EXERCISES). Last on
         # purpose -- it wrecks grip for everything that would follow it.
-        ("Farmer's Walk", 3, 60, 0),
+        ("Farmer's Walk", 2, 60, 0),
     ],
     # Shoulder-sparing copy of FB 1 Express, for training around a shoulder that
     # doesn't tolerate overhead work (irritated 2026-09-01 doing pull-ups). Same
@@ -350,7 +350,7 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
         # The carry that replaced Heavy Lat Pulldowns. Last on purpose: 3 x 60 s of
         # loaded carry ruins grip for the row and the pull-ups, which used to follow
         # it. TIMED: the 60 is SECONDS per set, not reps.
-        ("Farmer's Walk", 3, 60, 0),
+        ("Farmer's Walk", 2, 60, 0),
     ],
 }
 
