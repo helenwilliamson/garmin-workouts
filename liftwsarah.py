@@ -261,7 +261,8 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
     "LWS Lower 1": [
         ("Calf Raises (partial ROM)", 3, 10, 0),
         ("Squats (Smith / hack / lunges)", 3, 10, 20),
-        ("Bulgarian Split Squats (DB)", 6, 10, 25),  # 3 per side
+        # 14 kg is ONE dumbbell, matching how these are logged from 2026-09-08 on.
+        ("Bulgarian Split Squats (DB)", 6, 10, 14),  # 3 per side
         ("Leg Extensions", 3, 10, 10),
         ("Lying Leg Curls", 3, 10, 14),
         ("Hip Adduction", 3, 10, 10),
