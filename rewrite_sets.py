@@ -70,6 +70,11 @@ EXTRA_RULES: dict[tuple[str, str], str] = {
     # picks BARBELL_DEADLIFT for the movement, so this stays as a standing rule
     # rather than a one-off: a future mis-detected set is fixed on the next run.
     ("DEADLIFT", "BARBELL_DEADLIFT"): "BARBELL_STRAIGHT_LEG_DEADLIFT",
+    # The chest-supported row and the seated cable row are the same machine, logged
+    # two ways. SEATED_CABLE_ROW is the exact enum; CHEST_SUPPORTED_DUMBBELL_ROW was
+    # only ever a stand-in, FIT having no chest-supported machine row. Neither has a
+    # WEIGHTED_ twin, so this doesn't fight the derived rules.
+    ("ROW", "CHEST_SUPPORTED_DUMBBELL_ROW"): "SEATED_CABLE_ROW",
 }
 
 

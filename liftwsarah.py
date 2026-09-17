@@ -97,7 +97,7 @@ MACHINE_STEP_FRACTION = 0.05
 # "barbell", "dumbbell", "plate" (PLATE_STEP_KG), "lb_stack", "assist" (an lb stack
 # where progress means LESS weight). Anything unlisted is classified from its enum.
 EQUIPMENT: dict[str, str] = {
-    "Hip Thrusts (Smith)": "plate",   # enum says barbell, but loaded in 5 kg plates
+    "Barbell Hip Thrust": "plate",   # enum says barbell, but loaded in 5 kg plates
     "Pull-ups": "assist",             # assisted machine: less help = progress
     "Chin-ups": "assist",
     "Farmer's Walk": "dumbbell",      # held dumbbells/handles; enum name doesn't say
@@ -191,7 +191,7 @@ EXERCISE_MAP: dict[str, tuple[str, str | None]] = {
     "Preacher Curls": ("CURL", "ONE_ARM_PREACHER_CURL"),
     "Rear Delt Cable Flies": ("FLYE", None),   # generic "Fly" — see note above
     "Romanian Deadlifts": ("DEADLIFT", "BARBELL_STRAIGHT_LEG_DEADLIFT"),
-    "Hip Thrusts (Smith)": ("HIP_RAISE", "BARBELL_HIP_THRUST_WITH_BENCH"),
+    "Barbell Hip Thrust": ("HIP_RAISE", "BARBELL_HIP_THRUST_WITH_BENCH"),
     "Reverse Lunges": ("LUNGE", "BARBELL_REVERSE_LUNGE"),
     "Seated Leg Curls": ("LEG_CURL", "LEG_CURL"),
     "Squat (leg-extension alt.)": ("SQUAT", "BARBELL_HACK_SQUAT"),
@@ -200,7 +200,6 @@ EXERCISE_MAP: dict[str, tuple[str, str | None]] = {
     # All exact FIT matches except the chest-supported row, where the only enum is
     # the dumbbell version (Garmin has no chest-supported MACHINE row).
     "Incline Barbell Bench Press": ("BENCH_PRESS", "INCLINE_BARBELL_BENCH_PRESS"),
-    "Chest-Supported Machine Row": ("ROW", "CHEST_SUPPORTED_DUMBBELL_ROW"),      # approx
     "Standing DB Shoulder Press": ("SHOULDER_PRESS", "OVERHEAD_DUMBBELL_PRESS"),
     "Barbell Back Squats": ("SQUAT", "BARBELL_BACK_SQUAT"),
     "Flat Barbell Bench Press": ("BENCH_PRESS", "BARBELL_BENCH_PRESS"),
@@ -246,7 +245,6 @@ DISPLAY_NAME_OVERRIDES: dict[str, str] = {
     "Rear Delt Cable Flies": "Fly",  # generic FLYE category, no specific enum
     "Pull-ups": "Assisted Pull-up",  # underlying enum is band-assisted; label covers machine assist
     "Chin-ups": "Assisted Chin-up",
-    "Chest-Supported Machine Row": "Chest-Supported Row",  # enum is the dumbbell version
     "High-Incline DB Press": "High-Incline DB Press",  # enum name doesn't say "high"
     "Neutral-Grip Lat Pulldown": "Neutral-Grip Lat Pulldown",  # enum is grip-agnostic
 }
@@ -289,11 +287,12 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
     # up --pull-weights automatically).
     "FB 1 Express": [
         ("Leg Press", 3, 10, 0),                        # first exercise
-        ("Hip Thrusts (Smith)", 3, 10, 0),
+        ("Barbell Hip Thrust", 3, 10, 0),
         ("Bulgarian Split Squats (DB)", 6, 10, 0),   # 3 per side; the lunge pattern
         ("Romanian Deadlifts", 3, 10, 40),              # barbell; holds the RDL table weight
         ("Flat Barbell Bench Press", 3, 10, 0),
-        ("Chest-Supported Machine Row", 3, 10, 0),
+        ("Seated Cable Row", 3, 10, 0),                 # was logged as a chest-supported
+                                                        # row; same machine
         ("Standing DB Shoulder Press", 3, 10, 0),
         ("Pull-ups", 3, 10, 0),                          # added, at the end
         ("Cable Woodchop", 4, 10, 0),                    # 2 per side; the rotate pattern
@@ -313,10 +312,10 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
     # here -- knock ~30% off the presses and the pulldown on the watch while the
     # shoulder is settling, and stay inside a pain-free range.
     "FB Express (Low shoulder)": [
-        ("Hip Thrusts (Smith)", 3, 10, 0),
+        ("Barbell Hip Thrust", 3, 10, 0),
         ("Romanian Deadlifts", 3, 10, 40),           # barbell; holds the RDL table weight
         ("Flat DB Press", 3, 10, 0),
-        ("Chest-Supported Machine Row", 3, 10, 0),   # chest pad keeps the shoulder quiet
+        ("Seated Cable Row", 3, 10, 0),              # supported row, shoulder stays quiet
         ("Leg Press", 3, 10, 0),
         ("High-Incline DB Press", 3, 10, 0),
         ("Face Pulls", 3, 12, 10),                   # 12 reps: cuff work, not a heavy set
@@ -359,7 +358,6 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
 # lift — flagged inline. Check these against what you actually lift:
 WEIGHT_FROM: dict[str, str] = {
     "Incline Barbell Bench Press": "Incline Press (Smith)",     # Smith -> free bar
-    "Chest-Supported Machine Row": "Smith Machine Bent-Over Row",
     "Leg Press": "Leg Press",                                   # same movement
     "Standing DB Shoulder Press": "Seated Shoulder Press",      # seated barbell -> standing DB
     "Barbell Back Squats": "Squats (Smith / hack / lunges)",    # Smith/hack -> free bar
