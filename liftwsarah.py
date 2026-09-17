@@ -324,17 +324,29 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
         ("Standing Calf Raises", 3, 10, 0),             # added, first exercise
         ("Barbell Back Squats", 3, 10, 0),
         ("Conventional Barbell Deadlifts", 3, 10, 0),
-        ("Leg Press", 3, 10, 0),                        # added, after the deadlift
+        # Was Leg Press, a second squat pattern after the back squat. Swapped for the
+        # lunge, same movement as FB 1 Express so there's one weight to maintain.
+        # 4 sets here against Express's 6: this session already carries the back
+        # squat and the deadlift, so the lunge is accessory work rather than the
+        # main knee-dominant lift.
+        ("Bulgarian Split Squats (Smith)", 4, 10, 0),   # 2 per side; the lunge pattern
         ("Hip Adduction", 3, 10, 0),                    # added, after the leg press
         ("Flat Barbell Bench Press", 3, 10, 0),
-        ("Heavy Lat Pulldowns", 3, 10, 0),
+        # Heavy Lat Pulldowns removed here -- the session's second vertical pull, with
+        # Pull-ups at the end. Its replacement (the carry) is last, not in this slot.
         ("Seated Cable Row", 3, 10, 0),
         ("Standing DB Shoulder Press", 3, 10, 0),       # was barbell overhead press
         ("DB Bicep Curls", 3, 10, 0),
-        ("Weighted Crunches", 3, 10, 0),                # added, after the bicep curls
+        # Was Weighted Crunches: the same trunk flexion as the hanging knee raises
+        # two rows down. Swapped for the rotate pattern.
+        ("Cable Woodchop", 4, 10, 0),                   # 2 per side
         ("Tricep Rope Pushdowns", 3, 10, 0),
-        ("Hanging Knee Raises", 3, 10, 0),
+        ("Hanging Leg Raises", 3, 10, 0),               # was knee raises
         ("Pull-ups", 3, 10, 0),                         # added, after the knee raises
+        # The carry that replaced Heavy Lat Pulldowns. Last on purpose: 3 x 60 s of
+        # loaded carry ruins grip for the row and the pull-ups, which used to follow
+        # it. TIMED: the 60 is SECONDS per set, not reps.
+        ("Farmer's Walk", 3, 60, 0),
     ],
 }
 
