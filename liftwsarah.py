@@ -294,8 +294,10 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
         ("Seated Cable Row", 3, 10, 0),                 # was logged as a chest-supported
                                                         # row; same machine
         ("Standing DB Shoulder Press", 3, 10, 0),
-        ("Pull-ups", 3, 10, 0),                          # added, at the end
+        # Woodchop before the pull-up: it's trunk work, and doing it after would mean
+        # rotating hard on a grip already spent by the pull-ups and the carry.
         ("Cable Woodchop", 4, 10, 0),                    # 2 per side; the rotate pattern
+        ("Pull-ups", 3, 10, 0),
         # TIMED: the 60 is SECONDS per set, not reps (see TIMED_EXERCISES). Last on
         # purpose -- it wrecks grip for everything that would follow it.
         ("Farmer's Walk", 3, 60, 0),
