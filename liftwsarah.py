@@ -203,7 +203,6 @@ EXERCISE_MAP: dict[str, tuple[str, str | None]] = {
     "Chest-Supported Machine Row": ("ROW", "CHEST_SUPPORTED_DUMBBELL_ROW"),      # approx
     "Standing DB Shoulder Press": ("SHOULDER_PRESS", "OVERHEAD_DUMBBELL_PRESS"),
     "Barbell Back Squats": ("SQUAT", "BARBELL_BACK_SQUAT"),
-    "Conventional Barbell Deadlifts": ("DEADLIFT", "BARBELL_DEADLIFT"),
     "Flat Barbell Bench Press": ("BENCH_PRESS", "BARBELL_BENCH_PRESS"),
     "Heavy Lat Pulldowns": ("PULL_UP", "LAT_PULLDOWN"),
     "Seated Cable Row": ("ROW", "SEATED_CABLE_ROW"),
@@ -326,7 +325,8 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
     "FB 2 Power": [
         ("Standing Calf Raises", 3, 10, 0),             # added, first exercise
         ("Barbell Back Squats", 3, 10, 0),
-        ("Conventional Barbell Deadlifts", 3, 10, 0),
+        ("Romanian Deadlifts", 3, 10, 0),               # was logged as a conventional
+                                                        # deadlift; always an RDL
         # Was Leg Press, a second squat pattern after the back squat. Swapped for the
         # lunge, same movement and same 6 sets as FB 1 Express, so there's one number
         # to maintain rather than a per-session count.
@@ -363,7 +363,6 @@ WEIGHT_FROM: dict[str, str] = {
     "Leg Press": "Leg Press",                                   # same movement
     "Standing DB Shoulder Press": "Seated Shoulder Press",      # seated barbell -> standing DB
     "Barbell Back Squats": "Squats (Smith / hack / lunges)",    # Smith/hack -> free bar
-    "Conventional Barbell Deadlifts": "Romanian Deadlifts",     # RDL -> conventional pull
     "Flat Barbell Bench Press": "Incline Press (Smith)",        # incline Smith -> flat free bar
     "Heavy Lat Pulldowns": "Seated Single-Arm Cable Pulldown",   # single-arm -> two-arm bar
     "Seated Cable Row": "Smith Machine Bent-Over Row",
@@ -381,6 +380,7 @@ WEIGHT_FROM: dict[str, str] = {
     "Hip Adduction": "Hip Adduction",
     "Pull-ups": "Pull-ups",
     "Bulgarian Split Squats (DB)": "Bulgarian Split Squats (DB)",
+    "Romanian Deadlifts": "Romanian Deadlifts",
     "DB Side Lateral Raises": "DB Side Lateral Raises",
     # Shoulder swaps. Both DB presses take the Smith incline press number, same as
     # the barbell presses they stand in for -- a starting point, not a validated
@@ -401,7 +401,6 @@ WEIGHT_FROM: dict[str, str] = {
 WARMUP_WEIGHTS: dict[str, float] = {
     "Flat Barbell Bench Press": 20.0,   # history has one 22.5 kg set, no opener
     "Romanian Deadlifts": 20.0,         # nothing logged in the window to open from
-    "Conventional Barbell Deadlifts": 20.0,  # logged opener was 40 kg, too heavy to start on
 }
 
 
@@ -1005,8 +1004,8 @@ def main() -> None:
     # Full-body sessions carry no weights of their own: fill them from their LWS
     # source lift (after --pull-weights, so they follow the pulled numbers).
     # Inheritance only FILLS GAPS — an exercise's own logged history always wins,
-    # otherwise a stand-in weight would override the real thing (e.g. the barbell
-    # deadlift taking its RDL's number despite having 56 days of its own sets).
+    # otherwise a stand-in weight would override the real thing (e.g. the flat
+    # bench taking the incline Smith's number despite having its own logged sets).
     overrides = {**inherited_weights(overrides), **overrides}
     # WARMUP_WEIGHTS last: a hand-set opener is an instruction and outranks history.
     warmups = {**inherited_weights(warmups), **warmups, **WARMUP_WEIGHTS}

@@ -66,6 +66,10 @@ EXTRA_RULES: dict[tuple[str, str], str] = {
     # bulgarian variant has a WEIGHTED_ twin in the FIT enum, so a loaded set
     # carries the plain name and this is the only rule that touches it.
     ("LUNGE", "BARBELL_BULGARIAN_SPLIT_SQUAT"): "DUMBBELL_BULGARIAN_SPLIT_SQUAT",
+    # Every barbell deadlift ever logged was in fact a Romanian deadlift. The watch
+    # picks BARBELL_DEADLIFT for the movement, so this stays as a standing rule
+    # rather than a one-off: a future mis-detected set is fixed on the next run.
+    ("DEADLIFT", "BARBELL_DEADLIFT"): "BARBELL_STRAIGHT_LEG_DEADLIFT",
 }
 
 
