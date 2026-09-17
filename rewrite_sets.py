@@ -21,8 +21,9 @@ Usage (each step verifies before the next):
     python3 rewrite_sets.py --apply [--only <id>]  # write
     python3 rewrite_sets.py --restore <activityId> # put the dumped payload back
 
-Scope is one rename rule at a time, set by RULES below. Only sets with a real
-weight (> 0) are touched — WEIGHTED_* on a bodyweight set would be a lie.
+Scope is set by RULES below: the derived weighted-variant renames, plus any
+hand-written one-offs in EXTRA_RULES. Only sets with a real weight (> 0) are
+touched — WEIGHTED_* on a bodyweight set would be a lie.
 """
 
 import argparse
@@ -53,6 +54,20 @@ VARIANTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 # rather keep reading as the plain movement.
 EXCLUDE: set[tuple[str, str]] = set()
 
+# One-off renames applied ON TOP of the derived weighted-variant rules:
+# {(category, name as currently logged): name to write}. Use where the watch
+# recorded the wrong equipment for a movement, which the weighted-variant rules
+# can't fix because they only ever swap the WEIGHTED_ prefix.
+#
+# Unlike the derived rules these are hand-written, so the target name must be a
+# real FIT enum for that category -- Garmin 400s on an unknown one.
+EXTRA_RULES: dict[tuple[str, str], str] = {
+    # Logged as the Smith/barbell variant; actually done with dumbbells. Neither
+    # bulgarian variant has a WEIGHTED_ twin in the FIT enum, so a loaded set
+    # carries the plain name and this is the only rule that touches it.
+    ("LUNGE", "BARBELL_BULGARIAN_SPLIT_SQUAT"): "DUMBBELL_BULGARIAN_SPLIT_SQUAT",
+}
+
 
 def load_rules() -> dict[tuple[str, str], str]:
     with open(VARIANTS_PATH) as fh:
@@ -62,6 +77,7 @@ def load_rules() -> dict[tuple[str, str], str]:
         for plain, weighted in mapping.items():
             if (category, plain) not in EXCLUDE:
                 rules[(category, plain)] = weighted
+    rules.update(EXTRA_RULES)  # hand-written renames win over the derived ones
     return rules
 
 

@@ -167,7 +167,9 @@ WEIGHT_UNIT_KG = {"unitId": 8, "unitKey": "kilogram"}
 EXERCISE_MAP: dict[str, tuple[str, str | None]] = {
     "Calf Raises (partial ROM)": ("CALF_RAISE", "STANDING_CALF_RAISE"),
     "Squats (Smith / hack / lunges)": ("SQUAT", "BARBELL_BACK_SQUAT"),
-    "Bulgarian Split Squats (Smith)": ("LUNGE", "BARBELL_BULGARIAN_SPLIT_SQUAT"),
+    # Dumbbells, not the Smith bar -- what's actually being done. The FIT enum has
+    # no WEIGHTED_ twin for either bulgarian variant, so a loaded set keeps this name.
+    "Bulgarian Split Squats (DB)": ("LUNGE", "DUMBBELL_BULGARIAN_SPLIT_SQUAT"),
     "Leg Extensions": ("CRUNCH", "LEG_EXTENSIONS"),
     "Lying Leg Curls": ("LEG_CURL", "LEG_CURL"),
     "Hip Adduction": ("HIP_STABILITY", "STANDING_ADDUCTION"),  # -> WEIGHTED_ when loaded
@@ -259,7 +261,7 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
     "LWS Lower 1": [
         ("Calf Raises (partial ROM)", 3, 10, 0),
         ("Squats (Smith / hack / lunges)", 3, 10, 20),
-        ("Bulgarian Split Squats (Smith)", 6, 10, 25),  # 3 per side
+        ("Bulgarian Split Squats (DB)", 6, 10, 25),  # 3 per side
         ("Leg Extensions", 3, 10, 10),
         ("Lying Leg Curls", 3, 10, 14),
         ("Hip Adduction", 3, 10, 10),
@@ -288,7 +290,7 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
     "FB 1 Express": [
         ("Leg Press", 3, 10, 0),                        # first exercise
         ("Hip Thrusts (Smith)", 3, 10, 0),
-        ("Bulgarian Split Squats (Smith)", 6, 10, 0),   # 3 per side; the lunge pattern
+        ("Bulgarian Split Squats (DB)", 6, 10, 0),   # 3 per side; the lunge pattern
         ("Romanian Deadlifts", 3, 10, 40),              # barbell; holds the RDL table weight
         ("Flat Barbell Bench Press", 3, 10, 0),
         ("Chest-Supported Machine Row", 3, 10, 0),
@@ -327,7 +329,7 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
         # Was Leg Press, a second squat pattern after the back squat. Swapped for the
         # lunge, same movement and same 6 sets as FB 1 Express, so there's one number
         # to maintain rather than a per-session count.
-        ("Bulgarian Split Squats (Smith)", 6, 10, 0),   # 3 per side; the lunge pattern
+        ("Bulgarian Split Squats (DB)", 6, 10, 0),   # 3 per side; the lunge pattern
         ("Hip Adduction", 3, 10, 0),                    # added, after the leg press
         ("Flat Barbell Bench Press", 3, 10, 0),
         # Heavy Lat Pulldowns removed here -- the session's second vertical pull, with
@@ -377,7 +379,7 @@ WEIGHT_FROM: dict[str, str] = {
     # same movement. Same value, one place to change it.
     "Hip Adduction": "Hip Adduction",
     "Pull-ups": "Pull-ups",
-    "Bulgarian Split Squats (Smith)": "Bulgarian Split Squats (Smith)",
+    "Bulgarian Split Squats (DB)": "Bulgarian Split Squats (DB)",
     "DB Side Lateral Raises": "DB Side Lateral Raises",
     # Shoulder swaps. Both DB presses take the Smith incline press number, same as
     # the barbell presses they stand in for -- a starting point, not a validated
