@@ -47,6 +47,13 @@ from garminconnect.workout import (
 
 TOKENSTORE = os.path.expanduser("~/.garminconnect")
 REST_BETWEEN_SETS_SECS = 90
+# Per-exercise rest, where the default is wrong. 90 s is set by the heavy compounds;
+# light accessory and cuff/core work recovers long before that, and paying the full
+# rest on a 12-set exercise is most of what makes a session run long.
+REST_OVERRIDES: dict[str, int] = {
+    "Cable Woodchop": 45,   # light rotational work, one side at a time
+    "Farmer's Walk": 45,
+}
 # The between-exercise rest is a lap-button step, i.e. open-ended, so the duration
 # estimate has to assume a floor for it. 90 s minimum, same as the between-set rest.
 EST_REST_BETWEEN_EXERCISES_SECS = 90
@@ -93,6 +100,7 @@ EQUIPMENT: dict[str, str] = {
     "Hip Thrusts (Smith)": "plate",   # enum says barbell, but loaded in 5 kg plates
     "Pull-ups": "assist",             # assisted machine: less help = progress
     "Chin-ups": "assist",
+    "Farmer's Walk": "dumbbell",      # held dumbbells/handles; enum name doesn't say
 }
 
 # Garmin switches to the WEIGHTED_* FIT name once a set carries a weight, so a
@@ -115,7 +123,14 @@ ASSIST_EXERCISES = {"Pull-ups", "Chin-ups"}
 # working sets. The weight is the HARDEST you've logged -- for an assisted lift that
 # means the LEAST assistance, so the lowest number. Unlike the working-set lookup this
 # ignores MIN_WORKING_SET_REPS, since a max attempt is by definition a short set.
-ONE_REP_MAX_EXERCISES = {"Pull-ups"}
+# Empty: the pull-up max attempt was dropped 2026-09-17. Add a name back here to
+# reinstate the single, in any session that exercise appears in.
+ONE_REP_MAX_EXERCISES: set[str] = set()
+
+# Exercises prescribed by TIME rather than reps: for these the "reps" column in
+# SESSIONS holds SECONDS per set, and the step ends on a timer instead of a rep
+# count. A carry is a duration, not a rep count, which is why this exists.
+TIMED_EXERCISES: set[str] = {"Farmer's Walk"}
 
 NO_TARGET = {
     "workoutTargetTypeId": TargetType.NO_TARGET,
@@ -208,6 +223,15 @@ EXERCISE_MAP: dict[str, tuple[str, str | None]] = {
     # enum with the other two pulldowns below, so --pull-weights finds the existing
     # pulldown history instead of starting from nothing. Grip is in the label.
     "Neutral-Grip Lat Pulldown": ("PULL_UP", "LAT_PULLDOWN"),
+    # --- movement-pattern gap fillers (carry / rotate / anti-extension) ----------
+    # All three are exact FIT matches. Added because the full-body sessions covered
+    # squat, hinge, push and pull but nothing else: no loaded carry, no rotation.
+    "Farmer's Walk": ("CARRY", "FARMERS_WALK"),
+    "Cable Woodchop": ("CHOP", "CABLE_WOODCHOP"),
+    # Dead Bug is mapped but not currently in any session (dropped 2026-09-17: FB 2
+    # Power's hanging knee raises already cover anti-extension). Kept so dropping it
+    # back into SESSIONS is a one-line change.
+    "Dead Bug": ("HIP_STABILITY", "DEAD_BUG"),   # -> WEIGHTED_DEAD_BUG when loaded
 }
 
 # Optional custom step labels for exercises Garmin has no exact entry for. Set as
@@ -262,14 +286,18 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
     # named in WEIGHT_FROM below, so these sessions track the LWS numbers (and pick
     # up --pull-weights automatically).
     "FB 1 Express": [
-        ("Hip Thrusts (Smith)", 3, 10, 0),              # added, first exercise
+        ("Leg Press", 3, 10, 0),                        # first exercise
+        ("Hip Thrusts (Smith)", 3, 10, 0),
+        ("Bulgarian Split Squats (Smith)", 6, 10, 0),   # 3 per side; the lunge pattern
         ("Romanian Deadlifts", 3, 10, 40),              # barbell; holds the RDL table weight
-        ("Incline Barbell Bench Press", 3, 10, 0),
+        ("Flat Barbell Bench Press", 3, 10, 0),
         ("Chest-Supported Machine Row", 3, 10, 0),
-        ("Leg Press", 3, 10, 0),
         ("Standing DB Shoulder Press", 3, 10, 0),
-        ("DB Side Lateral Raises", 3, 10, 0),            # added, after the shoulder press
         ("Pull-ups", 3, 10, 0),                          # added, at the end
+        ("Cable Woodchop", 4, 10, 0),                    # 2 per side; the rotate pattern
+        # TIMED: the 60 is SECONDS per set, not reps (see TIMED_EXERCISES). Last on
+        # purpose -- it wrecks grip for everything that would follow it.
+        ("Farmer's Walk", 3, 60, 0),
     ],
     # Shoulder-sparing copy of FB 1 Express, for training around a shoulder that
     # doesn't tolerate overhead work (irritated 2026-09-01 doing pull-ups). Same
@@ -339,6 +367,7 @@ WEIGHT_FROM: dict[str, str] = {
     # same movement. Same value, one place to change it.
     "Hip Adduction": "Hip Adduction",
     "Pull-ups": "Pull-ups",
+    "Bulgarian Split Squats (Smith)": "Bulgarian Split Squats (Smith)",
     "DB Side Lateral Raises": "DB Side Lateral Raises",
     # Shoulder swaps. Both DB presses take the Smith incline press number, same as
     # the barbell presses they stand in for -- a starting point, not a validated
@@ -395,12 +424,21 @@ def strength_step(name: str, reps: int, order: int, weight_kg: float = 0.0) -> E
 
     weight_kg <= 0 means bodyweight / not set yet: the weight fields are omitted,
     which is how Garmin represents an unweighted step.
+
+    For a name in TIMED_EXERCISES, `reps` is read as SECONDS and the step ends on a
+    timer instead of a rep count.
     """
+    # For a TIMED_EXERCISES movement `reps` is SECONDS and the step ends on a timer.
+    if name in TIMED_EXERCISES:
+        end_condition = {"conditionTypeId": ConditionType.TIME, "conditionTypeKey": "time",
+                         "displayOrder": 2, "displayable": True}
+    else:
+        end_condition = {"conditionTypeId": ConditionType.REPS, "conditionTypeKey": "reps",
+                         "displayOrder": 2, "displayable": True}
     step = ExecutableStep(
         stepOrder=order,
         stepType={"stepTypeId": StepType.INTERVAL, "stepTypeKey": "interval", "displayOrder": 3},
-        endCondition={"conditionTypeId": ConditionType.REPS, "conditionTypeKey": "reps",
-                      "displayOrder": 2, "displayable": True},
+        endCondition=end_condition,
         endConditionValue=float(reps),
         targetType=NO_TARGET,
     )
@@ -556,12 +594,14 @@ def build_session(name: str, exercises: list[tuple[str, int, int, float]],
     for i, (ex_name, sets, reps, weight_kg) in enumerate(exercises):
         wk = weight_overrides.get(ex_name, weight_kg)  # pulled/inherited weight wins
         warm_kg = warmup_overrides.get(ex_name, wk)
-        work_reps = rep_overrides.get(ex_name, reps)
+        # A timed step's "reps" are seconds, so a pulled rep count must not replace them.
+        work_reps = reps if ex_name in TIMED_EXERCISES else rep_overrides.get(ex_name, reps)
+        rest = REST_OVERRIDES.get(ex_name, REST_BETWEEN_SETS_SECS)
 
         # Set 1: warm-up, then its rest.
         steps.append(warmup_step(ex_name, reps, order, warm_kg))
         order += 1
-        steps.append(timed_rest(REST_BETWEEN_SETS_SECS, order))
+        steps.append(timed_rest(rest, order))
         order += 1
 
         # Optional single max attempt, before the working sets while fresh.
@@ -569,14 +609,14 @@ def build_session(name: str, exercises: list[tuple[str, int, int, float]],
         if attempt_kg:
             steps.append(strength_step(ex_name, 1, order, attempt_kg))
             order += 1
-            steps.append(timed_rest(REST_BETWEEN_SETS_SECS, order))
+            steps.append(timed_rest(rest, order))
             order += 1
             extra_sets += 1
 
         # Remaining sets: working sets in a repeat group.
         inner = [
             strength_step(ex_name, work_reps, 1, wk),
-            timed_rest(REST_BETWEEN_SETS_SECS, 2),
+            timed_rest(rest, 2),
         ]
         group = create_repeat_group(iterations=max(1, sets - 1),
                                    workout_steps=inner, step_order=order)
@@ -590,12 +630,16 @@ def build_session(name: str, exercises: list[tuple[str, int, int, float]],
             steps.append(lap_button_rest(order))
             order += 1
 
-    # Rough duration estimate: ~40 s per set, plus the between-set rests (the last
+    # Rough duration estimate: ~40 s per set (a timed set takes its own seconds
+    # instead), plus the between-set rests (the last
     # of each group is skipped), plus a floor for each open-ended between-exercise
     # rest. Understating this makes Garmin's predicted finish time useless.
-    est = sum(s * 40 + (s - 1) * REST_BETWEEN_SETS_SECS for _, s, _, _ in exercises)
+    est = sum(s * (r if nm in TIMED_EXERCISES else 40)
+              + (s - 1) * REST_OVERRIDES.get(nm, REST_BETWEEN_SETS_SECS)
+              for nm, s, r, _ in exercises)
     est += max(0, len(exercises) - 1) * EST_REST_BETWEEN_EXERCISES_SECS
     est += extra_sets * (40 + REST_BETWEEN_SETS_SECS)  # max attempts and their rests
+    # (max attempts only ever apply to heavy compounds, which keep the default rest)
 
     return BaseWorkout(
         workoutName=name,
