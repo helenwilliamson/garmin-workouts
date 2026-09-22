@@ -137,6 +137,12 @@ TIMED_EXERCISES: set[str] = {"Farmer's Walk"}
 # -- marking one as such just spends a set of the few they get.
 NO_WARMUP_EXERCISES: set[str] = {"Farmer's Walk", "Cable Woodchop", "Hanging Leg Raises"}
 
+# Exercises warmed up ONE SIDE AT A TIME: they get two warm-up steps, not one, so both
+# legs (or arms) open the movement before the working sets start. A single warm-up on a
+# unilateral lift warms one side and leaves the other cold. The two steps come out of
+# the SESSIONS set count like any warm-up does, so 6 sets = 2 warm-up + 4 working.
+TWO_WARMUP_EXERCISES: set[str] = {"Bulgarian Split Squats (DB)"}
+
 NO_TARGET = {
     "workoutTargetTypeId": TargetType.NO_TARGET,
     "workoutTargetTypeKey": "no.target",
@@ -267,7 +273,7 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
         # much deeper range of motion now. The starting point only -- the HISTORY_FROM
         # cutoff hides the old shallow sets, so sessions logged from 2026-09-22 drive
         # the progression up from here.
-        ("Bulgarian Split Squats (DB)", 6, 10, 5),  # 3 per side
+        ("Bulgarian Split Squats (DB)", 6, 10, 5),  # 2 warm-up (1/leg) + 4 working, 2 per side
         ("Leg Extensions", 3, 10, 10),
         ("Lying Leg Curls", 3, 10, 14),
         ("Hip Adduction", 3, 10, 10),
@@ -296,7 +302,7 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
     "FB 1 Express": [
         ("Leg Press", 3, 10, 0),                        # first exercise
         ("Barbell Hip Thrust", 3, 10, 0),
-        ("Bulgarian Split Squats (DB)", 6, 10, 0),   # 3 per side; the lunge pattern
+        ("Bulgarian Split Squats (DB)", 6, 10, 0),   # 2 warm-up (1/leg) + 4 working; the lunge pattern
         ("Romanian Deadlifts", 3, 10, 40),              # barbell; holds the RDL table weight
         ("Flat Barbell Bench Press", 3, 10, 0),
         ("Seated Cable Row", 3, 10, 0),                 # was logged as a chest-supported
@@ -339,7 +345,7 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
         # Was Leg Press, a second squat pattern after the back squat. Swapped for the
         # lunge, same movement and same 6 sets as FB 1 Express, so there's one number
         # to maintain rather than a per-session count.
-        ("Bulgarian Split Squats (DB)", 6, 10, 0),   # 3 per side; the lunge pattern
+        ("Bulgarian Split Squats (DB)", 6, 10, 0),   # 2 warm-up (1/leg) + 4 working; the lunge pattern
         ("Hip Adduction", 3, 10, 0),                    # added, after the leg press
         ("Flat Barbell Bench Press", 3, 10, 0),
         # Heavy Lat Pulldowns removed here -- the session's second vertical pull, with
@@ -615,7 +621,8 @@ def build_session(name: str, exercises: list[tuple[str, int, int, float]],
 
     Every exercise opens with a WARM-UP set, then the remaining sets as working sets
     in a repeat group -- except for NO_WARMUP_EXERCISES, where all `sets` are working
-    sets and there is no warm-up. The warm-up weight comes from warmup_overrides (what you last
+    sets and there is no warm-up, and TWO_WARMUP_EXERCISES, which open with one warm-up
+    per side and so have two fewer working sets. The warm-up weight comes from warmup_overrides (what you last
     opened that movement with); with nothing to go on it falls back to the working
     weight, so the set is still marked warm-up but isn't a lighter load.
 
@@ -637,9 +644,11 @@ def build_session(name: str, exercises: list[tuple[str, int, int, float]],
         rest = REST_OVERRIDES.get(ex_name, REST_BETWEEN_SETS_SECS)
 
         # Set 1: warm-up, then its rest -- unless this movement forgoes the warm-up,
-        # in which case `sets` working sets go into the group below instead.
-        warms_up = ex_name not in NO_WARMUP_EXERCISES
-        if warms_up:
+        # in which case `sets` working sets go into the group below instead. A
+        # unilateral movement gets one warm-up per side.
+        warmup_sets = 0 if ex_name in NO_WARMUP_EXERCISES else (
+            2 if ex_name in TWO_WARMUP_EXERCISES else 1)
+        for _ in range(warmup_sets):
             steps.append(warmup_step(ex_name, reps, order, warm_kg))
             order += 1
             steps.append(timed_rest(rest, order))
@@ -659,7 +668,7 @@ def build_session(name: str, exercises: list[tuple[str, int, int, float]],
             strength_step(ex_name, work_reps, 1, wk),
             timed_rest(rest, 2),
         ]
-        group = create_repeat_group(iterations=max(1, sets - 1 if warms_up else sets),
+        group = create_repeat_group(iterations=max(1, sets - warmup_sets),
                                    workout_steps=inner, step_order=order)
         # Skip the 90s rest on the final set, so the only pause before the next
         # exercise is the lap-button rest (and the last exercise ends on a set).
