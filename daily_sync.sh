@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Daily re-upload + re-schedule, run from cron (see `crontab -l`).
+# Daily weight pull + re-upload + re-schedule, run from the garmin-sync.timer
+# systemd user unit (systemctl --user status garmin-sync.timer).
 #
 # Re-uploading replaces every workout, which hands each one a fresh workoutId and
 # drops whatever it was scheduled for -- so --schedule has to run in the same
 # invocation, and it does: liftwsarah.py schedules after uploading.
 #
-# Login uses the cached tokens in ~/.garminconnect. There is no TTY under cron, so
+# Login uses the cached tokens in ~/.garminconnect. There is no TTY under the timer, so
 # if those tokens ever expire the MFA prompt hits EOF and the run fails; the log
 # below is where that shows up. Fix by running the script once by hand.
 set -uo pipefail
@@ -21,6 +22,6 @@ fi
 
 {
     echo "=== $(date -Is) ==="
-    "$REPO/.venv/bin/python" "$REPO/liftwsarah.py" --schedule < /dev/null
+    "$REPO/.venv/bin/python" "$REPO/liftwsarah.py" --pull-weights --schedule < /dev/null
     echo "--- exit $? ---"
 } >> "$LOG" 2>&1
