@@ -263,8 +263,11 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
     "LWS Lower 1": [
         ("Calf Raises (partial ROM)", 3, 10, 0),
         ("Squats (Smith / hack / lunges)", 3, 10, 20),
-        # 14 kg is ONE dumbbell, matching how these are logged from 2026-09-08 on.
-        ("Bulgarian Split Squats (DB)", 6, 10, 14),  # 3 per side
+        # 5 kg is ONE dumbbell. Deliberately light: these are being done through a
+        # much deeper range of motion now. The starting point only -- the HISTORY_FROM
+        # cutoff hides the old shallow sets, so sessions logged from 2026-09-22 drive
+        # the progression up from here.
+        ("Bulgarian Split Squats (DB)", 6, 10, 5),  # 3 per side
         ("Leg Extensions", 3, 10, 10),
         ("Lying Leg Curls", 3, 10, 14),
         ("Hip Adduction", 3, 10, 10),
@@ -408,6 +411,21 @@ WEIGHT_FROM: dict[str, str] = {
 WARMUP_WEIGHTS: dict[str, float] = {
     "Flat Barbell Bench Press": 20.0,   # history has one 22.5 kg set, no opener
     "Romanian Deadlifts": 20.0,         # nothing logged in the window to open from
+    "Bulgarian Split Squats (DB)": 3.0, # opener for the deeper-ROM version
+}
+
+
+# Per-exercise history cutoff: --pull-weights ignores logged sets from BEFORE this
+# date. For a movement that was being done wrong, the old sets are a different (here:
+# much shallower, so much heavier) lift filed under the same name, and progressing
+# from them prescribes a weight the correct version can't carry. Sessions logged on or
+# after the date count as normal, so progression restarts from the SESSIONS table
+# weight and then climbs on its own. Drop an entry once every set in the lookback
+# window is from the new version -- it does nothing at that point.
+HISTORY_FROM: dict[str, str] = {
+    # Done through a much deeper range of motion from here on; everything logged
+    # before this (up to 14 kg) is the shallow version.
+    "Bulgarian Split Squats (DB)": "2026-09-22",
 }
 
 
@@ -858,6 +876,11 @@ def pull_logged_weights(garmin: Garmin, lookback_days: int = WEIGHT_LOOKBACK_DAY
     activities = sorted(activities, key=_when, reverse=True)  # newest first
 
     wanted = _wanted_keys()
+
+    def _eligible(key: tuple, when: str) -> list[str]:
+        """The plan names this logged set counts for, after HISTORY_FROM cutoffs."""
+        return [n for n in wanted[key] if when >= HISTORY_FROM.get(n, "")]
+
     working: dict[str, tuple[float, str, int]] = {}
     warmup: dict[str, tuple[float, str]] = {}
     hardest: dict[str, tuple[float, str]] = {}
@@ -882,7 +905,7 @@ def pull_logged_weights(garmin: Garmin, lookback_days: int = WEIGHT_LOOKBACK_DAY
             for key in _set_keys(s, wanted):
                 opened_g.setdefault(key, grams)  # first one wins: sets are in order
                 # Hardest ever, at ANY rep count: the max attempt target.
-                for ex_name in wanted[key]:
+                for ex_name in _eligible(key, when):
                     kg_here = round(grams / 1000.0, 1)
                     prev_h = hardest.get(ex_name)
                     harder = (kg_here < prev_h[0] if ex_name in ASSIST_EXERCISES
@@ -906,7 +929,7 @@ def pull_logged_weights(garmin: Garmin, lookback_days: int = WEIGHT_LOOKBACK_DAY
 
         for key, (grams, reps) in best.items():
             kg = round(grams / 1000.0, 1)
-            for ex_name in wanted[key]:
+            for ex_name in _eligible(key, when):
                 prev = working.get(ex_name)
                 assist = ex_name in ASSIST_EXERCISES
                 # best wins; newest date kept on ties
@@ -917,7 +940,7 @@ def pull_logged_weights(garmin: Garmin, lookback_days: int = WEIGHT_LOOKBACK_DAY
         # Activities are newest first, so the first session to mention an exercise
         # is the most recent one -- don't let older sessions overwrite it.
         for key, grams in opened_g.items():
-            for ex_name in wanted[key]:
+            for ex_name in _eligible(key, when):
                 warmup.setdefault(ex_name, (round(grams / 1000.0, 1), when))
 
     return working, warmup, hardest
