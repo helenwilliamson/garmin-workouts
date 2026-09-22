@@ -922,7 +922,17 @@ def pull_logged_weights(garmin: Garmin, lookback_days: int = WEIGHT_LOOKBACK_DAY
                     if harder:
                         hardest[ex_name] = (kg_here, when)
                 reps = s.get("repetitionCount")
-                if reps is None or reps < MIN_WORKING_SET_REPS:
+                if any(n in TIMED_EXERCISES for n in wanted[key]):
+                    # A carry is prescribed by TIME, and Garmin logs it with no rep
+                    # count at all (repetitionCount None or 0). Putting it through the
+                    # rep filter throws every carry away, which is why these used to
+                    # come back as "no recent logged weight" however much was logged.
+                    # A duration is what makes it a real set here; reps stay 0, and
+                    # the caller skips the rep ladder for timed movements.
+                    if not (s.get("duration") or 0):
+                        continue
+                    reps = 0
+                elif reps is None or reps < MIN_WORKING_SET_REPS:
                     continue  # 1RM test or unknown, not a working set
                 sets_by_weight.setdefault(key, {}).setdefault(grams, []).append(reps)
 
@@ -1022,7 +1032,14 @@ def main() -> None:
                 warmups[ex_name] = warm[0]
             if ex_name in found:
                 kg, when, reps = found[ex_name]
-                if kg > 0:
+                if kg > 0 and ex_name in TIMED_EXERCISES:
+                    # Timed: the "reps" column is seconds, so there is no rep ladder to
+                    # climb and no rep-ceiling weight bump. Prescribe the heaviest
+                    # carried recently and leave the duration to the plan table.
+                    overrides[ex_name] = kg
+                    print(f"  {ex_name:34} {'--':>8} {kg:>6.1f} kg "
+                          f"{'timed':>8}   ({when})")
+                elif kg > 0:
                     target = reps + REP_PROGRESSION
                     note = ""
                     if target >= REP_CEILING:
