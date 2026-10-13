@@ -337,6 +337,22 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
         ("Face Pulls", 3, 12, 10),                   # 12 reps: cuff work, not a heavy set
         ("Neutral-Grip Lat Pulldown", 3, 10, 0),
     ],
+    # Thigh-sparing copy of FB 1 Express, for training around a bruised thigh
+    # (2026-10-13). Drops the three loaded quad/hamstring movements -- Leg Press,
+    # Bulgarian Split Squats, Romanian Deadlifts -- and adds two that keep the thigh
+    # out of it: calf raises (lower leg only) and hanging leg raises (trunk).
+    # Hip thrust stays: glute-driven, knee bent, no stretch through the thigh.
+    "FB Express (Thigh rest)": [
+        ("Barbell Hip Thrust", 3, 10, 0),
+        ("Standing Calf Raises", 3, 10, 0),              # same entry as FB 2 Power
+        ("Flat Barbell Bench Press", 3, 10, 0),
+        ("Seated Cable Row", 3, 10, 0),
+        ("Standing DB Shoulder Press", 3, 10, 0),
+        ("Cable Woodchop", 4, 10, 0),                    # 2 per side
+        ("Hanging Leg Raises", 3, 10, 0),                # before the pull-ups, as in FB 2 Power
+        ("Pull-ups", 3, 10, 0),
+        ("Farmer's Walk", 2, 60, 0),                     # TIMED: seconds; last for grip
+    ],
     "FB 2 Power": [
         ("Standing Calf Raises", 3, 10, 0),             # added, first exercise
         ("Barbell Back Squats", 3, 10, 0),
@@ -448,6 +464,7 @@ WEEKLY_SCHEDULE: dict[int, str] = {
 # session, None skips the day entirely. Delete an entry once its date is past --
 # they are one-offs, not policy.
 SCHEDULE_OVERRIDES: dict[str, str | None] = {
+    "2026-10-13": "FB Express (Thigh rest)",   # bruised thigh
     # e.g. "2026-09-08": "FB Express (Low shoulder)",   # swap in shoulder-sparing session
     #      "2026-12-25": None,                          # skip the day
 }
