@@ -343,8 +343,8 @@ SESSIONS: dict[str, list[tuple[str, int, int, float]]] = {
     # out of it: calf raises (lower leg only) and hanging leg raises (trunk).
     # Hip thrust stays: glute-driven, knee bent, no stretch through the thigh.
     "FB Express (Thigh rest)": [
+        ("Standing Calf Raises", 3, 10, 0),              # same entry as FB 2 Power; first
         ("Barbell Hip Thrust", 3, 10, 0),
-        ("Standing Calf Raises", 3, 10, 0),              # same entry as FB 2 Power
         ("Flat Barbell Bench Press", 3, 10, 0),
         ("Seated Cable Row", 3, 10, 0),
         ("Standing DB Shoulder Press", 3, 10, 0),
