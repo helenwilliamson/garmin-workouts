@@ -59,10 +59,11 @@ REST_OVERRIDES: dict[str, int] = {
 EST_REST_BETWEEN_EXERCISES_SECS = 90
 WEIGHT_LOOKBACK_DAYS = 56  # how far back --pull-weights looks for recent working weights
 
-# A set under this many reps is a 1RM/heavy-single test, not a working set, so it
-# must not set the prescribed weight. Sets with no rep count recorded are also
-# skipped — we can't tell which kind they were.
-MIN_WORKING_SET_REPS = 6
+# A set under this many reps is a 1RM test, not a working set, so it must not set
+# the prescribed weight. Max attempts are always a single rep; anything from 2 reps
+# up is a real working set, even a short one (e.g. pull-ups at 27 kg assist x4-5).
+# Sets with no rep count recorded are also skipped — we can't tell which kind they were.
+MIN_WORKING_SET_REPS = 2
 
 # Working-set rep target = reps logged at that weight PLUS this, so each session asks
 # for one more than last time rather than just mirroring it. Set to 0 to prescribe
@@ -879,8 +880,8 @@ def pull_logged_weights(garmin: Garmin, lookback_days: int = WEIGHT_LOOKBACK_DAY
         MINIMUM across that session's sets at that weight, then the MAXIMUM of those
         per-session figures: every set in a session must reach the number, but one
         weaker session can't hold back a later good one. Only sets of
-        MIN_WORKING_SET_REPS or more count: anything shorter is a 1RM/heavy-single
-        test and would prescribe a weight that can't be worked with. For
+        MIN_WORKING_SET_REPS or more count: a single rep is a 1RM test and would
+        prescribe a weight that can't be worked with. For
         ASSIST_EXERCISES "heaviest" inverts, since the kg is help given rather than
         load moved.
 
