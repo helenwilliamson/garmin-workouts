@@ -23,5 +23,10 @@ fi
 {
     echo "=== $(date -Is) ==="
     "$REPO/.venv/bin/python" "$REPO/liftwsarah.py" --pull-weights --schedule < /dev/null
-    echo "--- exit $? ---"
+    rc=$?
+    echo "--- exit $rc ---"
 } >> "$LOG" 2>&1
+
+# Pass the script's exit code through so a failed run shows as failed in
+# `systemctl --user status garmin-sync.service`, not only in the log.
+exit "$rc"
